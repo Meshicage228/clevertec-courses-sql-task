@@ -44,27 +44,23 @@ LIMIT 1;
 
 -- Вывести самый дешевый и дорогой билет и стоимость (в одном результирующем ответе)
 
-select t.*, max_el.max_amount  from tickets as t
+select t.*, max_el.max_amount AS amount FROM tickets AS t
 JOIN (
-    select max(amount) as max_amount, ticket_no as max_n
-    from ticket_flights
-    group by max_n
-    order by max_amount desc
-    limit 1
-) as max_el on t.ticket_no = max_el.max_n
+    SELECT max(amount) AS max_amount, ticket_no AS max_n
+    FROM ticket_flights
+    GROUP BY max_n
+    ORDER BY max_amount DESC
+    LIMIT 1
+) AS max_el ON t.ticket_no = max_el.max_n
 UNION ALL
-select t.*, min_el.min_amount from tickets as t
+SELECT t.*, min_el.min_amount AS amount FROM tickets AS t
 JOIN (
-    select min(amount) as min_amount, ticket_no as min_n
-    from ticket_flights
-    group by min_n
-    order by min_amount asc
-    limit 1
-) as min_el on t.ticket_no = min_el.min_n;
--- select * from ticket_flights as tf
--- join min_element as me on tf.ticket_no = me.ticket_no
--- where tf.amount = (select min(min_amount) from min_element)
--- limit 1;
+    SELECT min(amount) AS min_amount, ticket_no AS min_n
+    FROM ticket_flights
+    GROUP BY min_n
+    ORDER BY min_amount ASC
+    LIMIT 1
+) AS min_el ON t.ticket_no = min_el.min_n;
 
 -- Вывести информацию о вылете с наибольшей суммарной стоимостью билетов
 
@@ -115,6 +111,8 @@ JOIN (
 
 -- Найти самый частый аэропорт назначения для каждой модели самолета. Вывести количество вылетов, информацию о модели самолета, аэропорт назначения, город
 
+
+-- Первое решение
 WITH colleted_count_and_keys AS (SELECT count(airport_name) AS count_airport, air.airport_code , f.aircraft_code AS ac_code
     FROM airports AS air
     JOIN flights AS f ON air.airport_code = f.arrival_airport
@@ -128,3 +126,24 @@ JOIN airports ON collected.airport_code = airports.airport_code
 JOIN aircrafts ON collected.ac_code = aircrafts.aircraft_code
 JOIN max_arrival ON collected.ac_code = max_arrival.ac_code
 WHERE count_airport = max_arrival.max_count;
+
+-- Второе решение : чуть быстрее
+SELECT a.aircraft_code, a.model, ar.airport_name, ar.city, cnt AS max_arrivals
+FROM (
+  SELECT aircraft_code, airport_code, count(*) AS cnt
+  FROM flights
+  JOIN airports ON arrival_airport = airport_code
+  GROUP BY aircraft_code, airport_code
+) AS count_keys
+JOIN (
+  SELECT aircraft_code, max(cnt) AS max_cnt
+  FROM (
+    SELECT aircraft_code, airport_code, count(*) AS cnt
+    FROM flights
+    JOIN airports ON arrival_airport = airport_code
+    GROUP BY aircraft_code, airport_code
+  ) AS subquery
+  GROUP BY aircraft_code
+) AS max_subquery ON count_keys.aircraft_code = max_subquery.aircraft_code AND count_keys.cnt = max_subquery.max_cnt
+JOIN aircrafts AS a ON count_keys.aircraft_code = a.aircraft_code
+JOIN airports AS ar ON count_keys.airport_code = ar.airport_code;
