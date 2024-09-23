@@ -36,7 +36,7 @@ WHERE ad.city IN (SELECT city FROM cities);
 SELECT f.* FROM flights f
 JOIN airports dep_air ON f.departure_airport = dep_air.airport_code
 JOIN airports arr_air ON f.arrival_airport = arr_air.airport_code
-WHERE dep_air.city = 'Санкт-Петербург'
+WHERE dep_air.city = 'Екатеринбург'
   AND arr_air.city = 'Москва'
   AND f.status NOT IN ('Cancelled', 'Arrived', 'Departed')
 ORDER BY f.scheduled_departure ASC
